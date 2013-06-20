@@ -1,0 +1,43 @@
+#!/usr/bin/php
+<?php
+function transform($arr, $escape) {
+    $items = array_map(function($item) use ($escape) {
+        $item = mysql_real_escape_string($item);
+        return $escape . $item . $escape;
+    }, $arr);
+
+    return implode(",", $items);
+}
+
+function quit($msg) {
+    die($msg . "\n");
+}
+
+$filename = $argv[1];
+if (!file_exists($filename)) quit("File does not exist: $filename");
+
+$table = $argv[2];
+if (empty($table)) quit("table is required as as second argument");
+
+$file = fopen($filename, "r");
+if (!$file) quit("File read error with $filanme");
+
+$keys = array();
+$row = 0;
+
+while (($data = fgetcsv($file)) !== false) {
+    if ($row == 0) {
+        $keys = $data;
+    } else {
+        $sql = sprintf(
+            "INSERT INTO `%s` (%s) VALUES (%s);\n",
+            $table,
+            transform($keys, "`"),
+            transform($data, "'")
+        );
+
+        echo $sql;
+    }
+
+    $row++;
+}
